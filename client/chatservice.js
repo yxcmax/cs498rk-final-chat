@@ -10,11 +10,14 @@ chatProvider.provider('ggsChat', function() {
 		}
 	};
 	this.$get = ['$http', '$timeout', function($http, $timeout) {
-		var apiBase = serverUrl + '/load_message'
+		var apiBase = window.location.hostname + serverUrl + '/load_message'
+		apiBase = apiBase.replace('http://', '');
+		apiBase = 'http://' + apiBase;
 		var messageLoaded = false;
 		var messageQueue = [];
 		var messageCallback;
 		var reloadCallback;
+		var userListCallback;
 		var user;
 		var room;
 		function emptyQueue(cb) {
@@ -65,7 +68,7 @@ chatProvider.provider('ggsChat', function() {
 			}
 		});
 		socket.on('roomParticipants', function(msg) {
-			console.log(msg);
+			userListCallback(msg);
 		});
 		return {
 			/**
@@ -75,13 +78,16 @@ chatProvider.provider('ggsChat', function() {
 			 *	@onNewMessage callback that gets fired when new messages arrive
 			 *	@onReload callback that gets fired when all messages should be cleared
 			 */
-			joinRoom: function(username, roomId, onNewMessage, onReload) {
+			joinRoom: function(username, roomId, onNewMessage, onReload, onReceivedUsers) {
 				user = username;
 				room = roomId;
 				messageCallback = function(msg) {
 					$timeout(function() {onNewMessage(msg);});
 				};
 				reloadCallback = onReload;
+				userListCallback = function(msg) {
+					$timeout(function() {onReceivedUsers(msg);});
+				};
 				if (socket.connected) {
 					joinImpl();
 				}
