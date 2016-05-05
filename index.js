@@ -2,8 +2,6 @@
 
 var assert = require('assert');
 var fs = require('fs');
-var mongoose = require('mongoose');
-var Message = require('./models/message');
 var bodyParser = require('body-parser');
 var express = require('express');
 var app = express();
@@ -20,11 +18,13 @@ var io = require('socket.io')(http);
  */
 module.exports = function(config) {
 	assert('uploadPath' in config);
-	assert('dbUrl' in config);
+	assert('mongoose' in config);
+	assert('dbconn' in config);
+	assert('port' in config);
 	assert(!('verifyReceiver' in config) || typeof(config.verifyReceiver) === 'function');
 
 	var upload = multer({dest: config.uploadPath});
-	mongoose.connect(config.dbUrl);
+	var Message = require('./models/message')(config.mongoose, config.dbconn);
 	var validateRoom = 'verifyReceiver' in config ? verifyReceiver : function() {return true;};
 
 	// In memory storage for connected clients
@@ -237,8 +237,8 @@ module.exports = function(config) {
 	// 	res.status(500).send('Something went wrong!');
 	// });
 
-	http.listen(3000, function() {
-		console.log('[Chat]' + 'listening on 3000');
+	http.listen(config.port, function() {
+		console.log('[Chat]' + 'listening on ' + config.port);
 	});
 
 };
