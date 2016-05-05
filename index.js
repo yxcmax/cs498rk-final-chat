@@ -129,7 +129,7 @@ module.exports = function(config) {
 	 *	This API endpoint is used for file messages
 	 */
 	app.route('/upload').post(upload.single('attachment'), function(req, res, next) {
-		var path = __dirname.replace(/\/+$/, '') + '/' + req.file.path.replace(/^\/+/, '');
+		var path = req.file.path;
 		if (!validateRoom(req.body.receiver)) {
 			console.log('[Chat]' + 'Invalid room ID supplied on file upload');
 			if (req.file.path) {
