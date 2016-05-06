@@ -140,32 +140,34 @@ module.exports = function(config) {
 			}
 			return next();
 		}
-		var message = new Message({
-			sender: req.body.sender,
-			receiver: req.body.receiver,
-			messageType: req.body.messageType,
-			originalFilename: req.file.originalname,
-			filePath: path,
-			fileMimeType: req.file.mimetype
-		});
-		message.save(function(err, data) {
-			if (err) {
-				console.log({
-					error: '[Chat]Failed to save file message into DB',
-					originalFilename: req.file.originalname,
-					path: path,
-					err: err
-				});
-				return next();
-			} else {
-				res.status(201).json({
-					status: "OK",
-					id: data._id
-				});
-				// Send the message to clients
-				sendMessage(req.body.receiver, data);
-				console.log('[Chat]' + '<' + req.file.originalname + '>' + ' was uploaded');
-			}
+		fs.readFile(req.file.path, function(err, filedata) {
+			if (err) throw err;
+			var message = new Message({
+				sender: req.body.sender,
+				receiver: req.body.receiver,
+				messageType: req.body.messageType,
+				originalFilename: req.file.originalname,
+				fileContent: filedata,
+				fileMimeType: req.file.mimetype
+			});
+			message.save(function(err, data) {
+				if (err) {
+					console.log({
+						error: '[Chat]Failed to save file message into DB',
+						originalFilename: req.file.originalname,
+						path: req.file.path,
+						err: err
+					});
+					return next();
+				} else {
+					res.status(201).json({
+						status: "OK",
+						id: data._id
+					});
+					sendMessage(req.body.receiver, data);
+					console.log('[Chat]' + '<' + req.file.originalname + '>' + ' was uploaded');
+				}
+			});
 		});
 		
 	});
@@ -180,15 +182,14 @@ module.exports = function(config) {
 				console.log(err);
 				return next();
 			} else if (data) {
-				var file = data.filePath;
+				var file = data.fileContent;
 				if (data.messageType == 'image') {
 					res.header('Content-Type', data.fileMimeType);
-					fs.readFile(file, function(err, data) {
-						if (err) throw err;
-						res.send(data);
-					});
+					res.send(file);
 				} else if (data.messageType == 'file') {
-					res.download(file, data.originalFilename);
+					res.header('Content-Disposition', 'attachment; filename=' + data.originalFilename);
+					res.header('Content-Type', data.fileMimeType);
+					res.send(file);
 				} else {
 					return next();
 				}
@@ -218,9 +219,6 @@ module.exports = function(config) {
 			res.json(data);
 		});
 	});
-
-
-	app.use('/static', express.static(__dirname + '/client'));
 
 	app.get('/', function(req, res) {
 		res.json(clients);

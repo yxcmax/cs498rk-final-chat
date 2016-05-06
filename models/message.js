@@ -21,7 +21,7 @@ module.exports = function(mongoose, dbconn) {
 			trim: true
 		},
 		originalFilename: String,
-		filePath: String,
+		fileContent: Buffer,
 		fileMimeType: String,
 		timestamp: Date
 	});
